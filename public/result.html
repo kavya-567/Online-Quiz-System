@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>QuizMaster - Results</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script></head><body>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="container"><div class="glass fade-in" id="resultCard">
+<h1>🏆 Quiz Complete!</h1>
+<p class="subtitle">Well done, <span id="uname"></span>!</p>
+<div class="chart-wrap"><canvas id="chart"></canvas><div class="chart-center"><span id="pct"></span><small>Score</small></div></div>
+<p class="perf-msg" id="perf"></p>
+<div class="stat-grid">
+<div class="stat correct"><p class="num" id="cNum"></p><p class="lbl">Correct</p></div>
+<div class="stat wrong"><p class="num" id="wNum"></p><p class="lbl">Wrong</p></div>
+</div>
+<div class="glass-sm" style="margin-top:20px"><h3 style="font-size:.95rem;font-weight:700;margin-bottom:12px">Subject Breakdown</h3><div id="subjectBars"></div></div>
+<div class="review-section">
+<button class="review-toggle" id="reviewToggle">📝 Review Answers <span>▼</span></button>
+<div id="reviewList" style="display:none"></div>
+</div>
+<div class="actions">
+<button class="btn" onclick="localStorage.removeItem('quiz_results');window.location.href='quiz.html'">🔄 Retry</button>
+<button class="btn btn-outline" onclick="localStorage.clear();window.location.href='index.html'">Logout</button>
+</div></div></div>
+<script>
+const r=JSON.parse(localStorage.getItem("quiz_results"));
+const ua=JSON.parse(localStorage.getItem("quiz_answers")||"[]");
+if(!r)window.location.href="index.html";
+document.getElementById("uname").textContent=r.username;
+document.getElementById("pct").textContent=r.percentage+"%";
+document.getElementById("perf").textContent=r.performanceMessage;
+document.getElementById("cNum").textContent=r.correctAnswers;
+document.getElementById("wNum").textContent=r.wrongAnswers;
+
+new Chart(document.getElementById("chart"),{type:"doughnut",data:{labels:["Correct","Wrong"],datasets:[{data:[r.correctAnswers,r.wrongAnswers],backgroundColor:["rgba(52,211,153,0.8)","rgba(248,113,113,0.8)"],borderColor:["rgba(52,211,153,1)","rgba(248,113,113,1)"],borderWidth:2,hoverOffset:15}]},options:{responsive:true,cutout:"68%",plugins:{legend:{display:false}},animation:{animateRotate:true,animateScale:true,duration:1500}}});
+
+const colors=["linear-gradient(90deg,#a78bfa,#7c3aed)","linear-gradient(90deg,#60a5fa,#3b82f6)","linear-gradient(90deg,#f472b6,#ec4899)","linear-gradient(90deg,#fbbf24,#f59e0b)","linear-gradient(90deg,#34d399,#10b981)"];
+const bars=document.getElementById("subjectBars");
+Object.entries(r.subjectScores).forEach(([s,d],i)=>{
+  const pct=Math.round(d.correct/d.total*100);
+  bars.innerHTML+=`<div class="subject-bar"><div class="bar-label"><span>${s}</span><span>${d.correct}/${d.total}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[i]}"></div></div></div>`;
+});
+
+let reviewOpen=false;
+document.getElementById("reviewToggle").onclick=()=>{
+  reviewOpen=!reviewOpen;
+  const list=document.getElementById("reviewList");
+  list.style.display=reviewOpen?"block":"none";
+  document.getElementById("reviewToggle").querySelector("span").textContent=reviewOpen?"▲":"▼";
+  if(reviewOpen&&!list.innerHTML){
+    r.questions.forEach((q,i)=>{
+      const userAns=ua[i];const isCorrect=userAns===q.correctAnswer;
+      let html=`<div class="review-q"><p class="subj">${q.subject}</p><p class="q-text">${i+1}. ${q.question}</p>`;
+      q.options.forEach((o,idx)=>{
+        let cls="review-opt";
+        if(idx===q.correctAnswer)cls+=" correct-opt";
+        else if(idx===userAns&&!isCorrect)cls+=" wrong-opt";
+        html+=`<div class="${cls}"><span class="letter">${String.fromCharCode(65+idx)}</span><span>${o}</span></div>`;
+      });
+      if(userAns===null)html+=`<p style="font-size:.75rem;color:rgba(255,255,255,0.4);margin-top:6px;font-style:italic">⏱ Not answered</p>`;
+      html+=`</div>`;list.innerHTML+=html;
+    });
+  }
+};
+</script></body></html>

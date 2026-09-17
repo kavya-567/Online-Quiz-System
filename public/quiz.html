@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>QuizMaster - Quiz</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="container" id="quizContainer"><div class="glass">
+<div class="top-bar"><span id="counter">Question 1 / 25</span><span class="timer" id="timer">⏱ 15s</span></div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div id="questionArea" class="slide-in">
+<h2 class="subject" id="subject"></h2>
+<p style="font-size:.75rem;color:rgba(255,255,255,0.4);margin-bottom:16px" id="subInfo"></p>
+<div class="question-text" id="qText"></div>
+<div class="options" id="options"></div>
+</div></div></div>
+<script>
+const username=localStorage.getItem("quiz_username");
+if(!username)window.location.href="index.html";
+let questions=[],current=0,answers=[],timerInterval,timeLeft=15;
+
+async function init(){
+  const res=await fetch("/questions");
+  questions=await res.json();
+  answers=new Array(questions.length).fill(null);
+  render();
+  startTimer();
+}
+
+function render(){
+  const q=questions[current];
+  document.getElementById("counter").textContent=`Question ${current+1} / ${questions.length}`;
+  document.getElementById("progress").style.width=`${((current+1)/questions.length)*100}%`;
+  document.getElementById("subject").textContent=q.subject;
+  const subStart=questions.findIndex(x=>x.subject===q.subject);
+  document.getElementById("subInfo").textContent=`Question ${current-subStart+1} of 5`;
+  document.getElementById("qText").textContent=q.question;
+  const opts=document.getElementById("options");
+  opts.innerHTML="";
+  q.options.forEach((o,i)=>{
+    const btn=document.createElement("button");
+    btn.className="option";
+    btn.innerHTML=`<span class="letter">${String.fromCharCode(65+i)}</span><span>${o}</span>`;
+    btn.onclick=()=>select(i);
+    opts.appendChild(btn);
+  });
+  const area=document.getElementById("questionArea");
+  area.classList.remove("slide-in");
+  void area.offsetWidth;
+  area.classList.add("slide-in");
+}
+
+function select(i){
+  answers[current]=i;
+  document.querySelectorAll(".option").forEach((o,idx)=>{o.classList.toggle("selected",idx===i);o.style.pointerEvents="none"});
+  clearInterval(timerInterval);
+  setTimeout(next,600);
+}
+
+function next(){
+  if(current<questions.length-1){current++;timeLeft=15;render();startTimer()}
+  else submit();
+}
+
+function startTimer(){
+  clearInterval(timerInterval);timeLeft=15;updateTimerDisplay();
+  timerInterval=setInterval(()=>{timeLeft--;updateTimerDisplay();if(timeLeft<=0){clearInterval(timerInterval);next()}},1000);
+}
+
+function updateTimerDisplay(){
+  const el=document.getElementById("timer");
+  el.textContent=`⏱ ${timeLeft}s`;
+  el.className="timer"+(timeLeft<=5?" danger":timeLeft<=10?" warn":"");
+}
+
+async function submit(){
+  const res=await fetch("/submit-score",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,answers})});
+  const data=await res.json();
+  localStorage.setItem("quiz_results",JSON.stringify(data));
+  localStorage.setItem("quiz_answers",JSON.stringify(answers));
+  window.location.href="result.html";
+}
+
+init();
+</script></body></html>

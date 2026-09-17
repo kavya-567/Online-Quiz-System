@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>QuizMaster - Login</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="container"><div class="glass fade-in">
+<h1>🎯 QuizMaster</h1><p class="subtitle">Test your CS knowledge</p>
+<form id="loginForm">
+<label>Username</label><input type="text" id="username" placeholder="Enter your name" required>
+<label>Password</label><input type="password" id="password" placeholder="Enter password" required>
+<p class="error" id="error"></p>
+<button type="submit" class="btn">Start Quiz →</button>
+</form></div></div>
+<script>
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const username=document.getElementById("username").value.trim();
+  const password=document.getElementById("password").value;
+  const err=document.getElementById("error");
+  err.textContent="";
+  try{
+    const res=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(!res.ok){err.textContent=data.error;return}
+    localStorage.setItem("quiz_username",username);
+    window.location.href="quiz.html";
+  }catch(e){err.textContent="Server error"}
+});
+</script></body></html>
